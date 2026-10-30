@@ -80,7 +80,7 @@ with aba_lancamento:
     if submitted:
         # Validações básicas
         if not rodovia or not descricao or not fiscal or not engenheiro:
-            st.error("⚠️ Por favor, preencha todos os campos obrigatórios (Rodovia, Descrição e Responsáveis).")
+            st.error("Por favor, preencha todos os campos obrigatórios (Rodovia, Descrição e Responsáveis).")
         else:
             # Cálculo de extensão (Considerando 1 estaca = 20 metros)
             posicao_inicial_m = (estaca_inicial * 20) + fracao_inicial
@@ -90,9 +90,9 @@ with aba_lancamento:
             if extensao_total_m < 0:
                 st.error("Erro: A estaca/fração final não pode ser menor que a inicial.")
             else:
-                st.success("✅ RDO validado e processado com sucesso!")
+                st.success("RDO validado e processado com sucesso!")
                 
-                # Salvar no histórico global da sessão (cada chave vira uma coluna isolada)
+                # Salvar no histórico global da sessão (cada dado isolado em sua respectiva chave/coluna)
                 novo_registro = {
                     "Data": data_servico.strftime('%d/%m/%Y'),
                     "Rodovia": rodovia,
@@ -107,13 +107,42 @@ with aba_lancamento:
                 st.session_state.lista_rdos.append(novo_registro)
                 
                 st.markdown("---")
-                st.subheader("📄 Resumo do Relatório Gerado")
+                st.subheader("Resumo do Relatório Gerado")
                 
-                # DataFrame em formato de tabela horizontal (cada dado em sua própria coluna)
+                # Exibição organizada em colunas independentes
                 df_resumo = pd.DataFrame([novo_registro])
                 st.dataframe(df_resumo, use_container_width=True)
 
-                # Opção de exportação para CSV com cada dado em sua respectiva coluna
+                # Opção de exportação para CSV com cada dado em sua coluna própria
                 csv_data = df_resumo.to_csv(index=False).encode('utf-8')
                 st.download_button(
-                    label="📥 Baixar Relatório
+                    label="Baixar Relatorio em CSV",
+                    data=csv_data,
+                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.csv",
+                    mime="text/csv"
+                )
+
+with aba_admin:
+    st.subheader("Painel do Administrador - RDOs Registrados")
+    senha_admin = st.text_input("Senha de Acesso", type="password", placeholder="Digite a senha de administrador")
+    
+    if senha_admin == "admin123":
+        st.success("Acesso autorizado com sucesso!")
+        
+        if len(st.session_state.lista_rdos) > 0:
+            df_admin = pd.DataFrame(st.session_state.lista_rdos)
+            st.dataframe(df_admin, use_container_width=True)
+            
+            csv_todos = df_admin.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Baixar Todos os Relatorios Consolidados",
+                data=csv_todos,
+                file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("Nenhum RDO cadastrado nesta sessão até o momento.")
+    elif senha_admin != "":
+        st.error("Senha incorreta. Tente novamente.")
+    else:
+        st.info("Insira a senha de administrador para visualizar os dados. (Senha padrão de teste: admin123)")
