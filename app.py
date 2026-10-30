@@ -10,31 +10,70 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilização CSS customizada e moderna
+# Estilização CSS customizada com fundo azul corporativo e moderno
 st.markdown("""
     <style>
+    /* Fundo geral da aplicação em azul corporativo */
+    .stApp {
+        background-color: #f0f4f8;
+    }
+    
+    /* Cabeçalho superior e blocos */
     .block-container {
         padding-top: 1.5rem;
         padding-bottom: 2rem;
+        background-color: #f0f4f8;
     }
+    
+    /* Estilização do formulário principal com fundo azul escuro/azulado elegante */
+    div[data-testid="stForm"] {
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 6px 16px rgba(11, 37, 69, 0.08);
+        background-color: #ffffff;
+        border: 1px solid #d9e2ec;
+    }
+    
+    /* Estilização dos botões */
     .stButton button {
         border-radius: 8px;
         font-weight: 600;
+        background-color: #102a43;
+        color: white;
     }
-    div[data-testid="stForm"] {
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        background-color: var(--background-color);
-        border: 1px solid rgba(128, 128, 128, 0.2);
+    
+    .stButton button:hover {
+        background-color: #243b53;
+        color: white;
     }
+
+    /* Caixa de cabeçalho do RDO gerado */
     .rdo-header-box {
-        border: 1px solid #e0e0e0;
+        border: 1px solid #bcccdc;
         border-radius: 10px;
         padding: 20px;
-        background-color: #fafafa;
-        color: #111111;
+        background-color: #ffffff;
+        color: #102a43;
         margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(16, 42, 67, 0.05);
+    }
+    
+    /* Abas customizadas */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background-color: #e2e8f0;
+        border-radius: 6px 6px 0px 0px;
+        padding: 10px 20px;
+        font-weight: 600;
+        color: #334e68;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #102a43 !important;
+        color: white !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -43,7 +82,7 @@ st.markdown("""
 if "lista_rdos" not in st.session_state:
     st.session_state.lista_rdos = []
 
-# Cabeçalho global com proporção ajustada para o logo completo
+# Cabeçalho global com o Logo ajustado na parte superior esquerda
 col_logo, col_titulo = st.columns([2, 5])
 with col_logo:
     try:
@@ -56,7 +95,7 @@ with col_titulo:
 
 st.markdown("---")
 
-# Criação das abas principais com um design mais limpo
+# Criação das abas principais
 aba_formulario, aba_admin = st.tabs(["📝 Lançamento de RDO", "📊 Painel do Administrador"])
 
 with aba_formulario:
@@ -191,15 +230,15 @@ with aba_formulario:
                 <div class="rdo-header-box">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <span style="font-size: 1.15rem; font-weight: bold;">#{num_rdo} - {data_formatada} ({data_servico.strftime('%A').capitalize()})</span>
-                        <span style="font-size: 0.85rem; color: #666;">Criado por: {responsavel_preenchimento}</span>
+                        <span style="font-size: 0.85rem; color: #555;">Criado por: {responsavel_preenchimento}</span>
                     </div>
-                    <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
+                    <hr style="margin: 6px 0; border: none; border-top: 1px solid #cbd5e1;">
                     <div style="font-size: 0.95rem; line-height: 1.5;">
                         <b>Cliente:</b> {cliente}<br>
                         <b>Obra:</b> {obra}<br>
                         <b>Centro de Custo / Rodovia:</b> {centro_custo} | {rodovia}
                     </div>
-                    <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
+                    <hr style="margin: 6px 0; border: none; border-top: 1px solid #cbd5e1;">
                     <div style="font-size: 0.95rem;">
                         <b>Tempo:</b> {periodo} ({tempo}) ☀️
                     </div>
