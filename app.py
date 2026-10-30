@@ -14,7 +14,7 @@ st.set_page_config(
 st.markdown("""
     <style>
     .block-container {
-        padding-top: 2rem;
+        padding-top: 1.5rem;
         padding-bottom: 2rem;
     }
     .stButton button {
@@ -43,14 +43,23 @@ st.markdown("""
 if "lista_rdos" not in st.session_state:
     st.session_state.lista_rdos = []
 
+# Cabeçalho global com o Logo na parte superior esquerda e o Título do Sistema ao lado
+col_logo, col_titulo = st.columns([1, 6])
+with col_logo:
+    try:
+        st.image("logo-ellenco.jpg", width=140)
+    except Exception:
+        st.warning("⚠️ Logo 'logo-ellenco.jpg' não encontrada no diretório.")
+with col_titulo:
+    st.title("🚧 Sistema de Relatório Diário de Obra (RDO)")
+    st.markdown("##### *Sala Técnica — Gestão Integrada de Campo e Escritório*")
+
+st.markdown("---")
+
 # Criação das abas principais com um design mais limpo
 aba_formulario, aba_admin = st.tabs(["📝 Lançamento de RDO", "📊 Painel do Administrador"])
 
 with aba_formulario:
-    st.title("🚧 Sistema de Relatório Diário de Obra (RDO)")
-    st.markdown("##### *Sala Técnica — Gestão Integrada de Campo e Escritório*")
-    st.markdown("")
-
     with st.form("form_rdo"):
         st.markdown("##### 👤 Informações Gerais e Contrato")
         col_g1, col_g2, col_g3 = st.columns(3)
