@@ -79,9 +79,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Inicializa o banco de dados em memória (session_state) para salvar os RDOs
+# Inicializa o banco de dados em memória e controle de autenticação
 if "lista_rdos" not in st.session_state:
     st.session_state.lista_rdos = []
+
+if "admin_autenticado" not in st.session_state:
+    st.session_state.admin_autenticado = False
 
 # Cabeçalho global com o Logo ajustado na parte superior esquerda
 col_logo, col_titulo = st.columns([2, 5])
@@ -237,78 +240,4 @@ with aba_formulario:
                     </div>
                     <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;">
                     <div style="font-size: 0.95rem; line-height: 1.6;">
-                        <b>Trecho Executado:</b> Est. {estaca_inicial}+{fracao_inicial:.2f} até Est. {estaca_final}+{fracao_final:.2f}<br>
-                        <b>Extensão Total:</b> {extensao_total_m:.2f} metros ({km_inicial:.3f} ao {km_final_calculado:.3f})<br>
-                        <b>Serviço:</b> {servico}<br>
-                        <b>Descrição:</b> {descricao}
-                    </div>
-                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;">
-                    <div style="font-size: 0.9rem; color: #486581; display: flex; justify-content: space-between;">
-                        <span><b>Fiscal:</b> {fiscal}</span>
-                        <span><b>Engenheiro:</b> {engenheiro}</span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Indicadores Rápidos
-                st.markdown("##### 📊 Indicadores Calculados do Trecho")
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Extensão Total Executada", f"{extensao_total_m:.2f} m")
-                m2.metric("Km Inicial", f"Km {km_inicial:.3f}")
-                m3.metric("Km Final Calculado", f"Km {km_final_calculado:.3f}")
-                
-                st.markdown("---")
-                st.subheader("📄 Tabela Completa de Parâmetros")
-                
-                resumo_dados = {
-                    "Parâmetro": list(novo_rdo.keys()),
-                    "Detalhe": list(novo_rdo.values())
-                }
-                
-                df_resumo = pd.DataFrame(resumo_dados)
-                st.dataframe(df_resumo, use_container_width=True, hide_index=True)
-
-                # Exportação para XLSX individual usando BytesIO
-                output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    df_resumo.to_excel(writer, index=False, sheet_name='RDO')
-                excel_data = output.getvalue()
-
-                st.download_button(
-                    label="📥 Baixar Relatório Individual (XLSX)",
-                    data=excel_data,
-                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
-
-with aba_admin:
-    st.title("🔒 Painel do Administrador - Histórico de RDOs")
-    st.markdown("##### *Relação consolidada de todos os formulários preenchidos na sessão*")
-    st.markdown("")
-
-    if len(st.session_state.lista_rdos) == 0:
-        st.info("ℹ️ Nenhum RDO foi cadastrado nesta sessão ainda.")
-    else:
-        df_geral = pd.DataFrame(st.session_state.lista_rdos)
-        
-        col_m1, col_m2 = st.columns(2)
-        col_m1.metric("Total de RDOs Registrados", len(st.session_state.lista_rdos))
-        
-        st.markdown("")
-        st.dataframe(df_geral, use_container_width=True, hide_index=True)
-        st.markdown("")
-
-        # Exportação consolidada para XLSX usando BytesIO
-        output_geral = io.BytesIO()
-        with pd.ExcelWriter(output_geral, engine='openpyxl') as writer:
-            df_geral.to_excel(writer, index=False, sheet_name='Consolidado_RDOs')
-        excel_geral_data = output_geral.getvalue()
-
-        st.download_button(
-            label="📥 Baixar Consolidação de Todos os RDOs (XLSX)",
-            data=excel_geral_data,
-            file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
-        )
+                        <b>
