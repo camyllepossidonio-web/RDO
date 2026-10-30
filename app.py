@@ -144,22 +144,3 @@ with aba_formulario:
                 # Salva o RDO na lista da sessão
                 novo_rdo = {
                     "Data": data_servico.strftime('%d/%m/%Y'),
-                    "Cliente": cliente,
-                    "Obra": obra,
-                    "Centro de Custo": centro_custo,
-                    "Condição do Tempo": tempo,
-                    "Período": periodo,
-                    "Rodovia": rodovia,
-                    "Km Inicial": f"Km {km_inicial:.3f}",
-                    "Km Final Calculado": f"Km {km_final_calculado:.3f}",
-                    "Trecho Executado": f"Est. {estaca_inicial}+{fracao_inicial:.2f} até Est. {estaca_final}+{fracao_final:.2f}",
-                    "Extensão Total (m)": f"{extensao_total_m:.2f} m",
-                    "Tipo de Serviço": servico,
-                    "Descrição": descricao,
-                    "Responsável pelo Preenchimento": responsavel_preenchimento,
-                    "Fiscal Responsável": fiscal,
-                    "Engenheiro Responsável": engenheiro
-                }
-                st.session_state.lista_rdos.append(novo_rdo)
-
-                st.success("✅ RDO validado, processado e salvo no
