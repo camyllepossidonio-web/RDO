@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import io
 
 # Configuração da página
 st.set_page_config(
@@ -69,10 +70,8 @@ with aba_lancamento:
         
         with col8:
             fiscal = st.text_input("Nome do Fiscal / Supervisor", placeholder="Nome completo do Fiscal")
-            crea_fiscal = st.text_input("CREA / Órgão do Fiscal", placeholder="Ex: CREA 123456-D")
         with col9:
             engenheiro = st.text_input("Nome do Engenheiro Responsável", placeholder="Nome completo do Engenheiro")
-            crea_engenheiro = st.text_input("CREA do Engenheiro", placeholder="Ex: CREA 654321-S")
 
         # Botão de submissão
         submitted = st.form_submit_button("Gerar e Validar RDO")
@@ -92,7 +91,7 @@ with aba_lancamento:
             else:
                 st.success("✅ RDO validado e processado com sucesso!")
                 
-                # Salvar no histórico global da sessão
+                # Salvar no histórico global da sessão (cada campo em uma coluna, formando uma linha na tabela)
                 novo_registro = {
                     "Data": data_servico.strftime('%d/%m/%Y'),
                     "Rodovia": rodovia,
@@ -101,55 +100,24 @@ with aba_lancamento:
                     "Extensão Total (m)": f"{extensao_total_m:.2f} m",
                     "Tipo de Serviço": servico,
                     "Descrição": descricao,
-                    "Fiscal Responsável": f"{fiscal} ({crea_fiscal})",
-                    "Engenheiro Responsável": f"{engenheiro} ({crea_engenheiro})"
+                    "Fiscal Responsável": fiscal,
+                    "Engenheiro Responsável": engenheiro
                 }
                 st.session_state.lista_rdos.append(novo_registro)
                 
                 st.markdown("---")
                 st.subheader("📄 Resumo do Relatório Gerado")
                 
-                # Exibição dos dados consolidados em formato amigável
-                resumo_dados = {
-                    "Parâmetro": list(novo_registro.keys()),
-                    "Detalhe": list(novo_registro.values())
-                }
-                
-                df_resumo = pd.DataFrame(resumo_dados)
-                st.table(df_resumo)
+                df_resumo = pd.DataFrame([novo_registro])
+                st.dataframe(df_resumo, use_container_width=True)
 
-                # Opção de exportação para CSV
-                csv_data = df_resumo.to_csv(index=False).encode('utf-8')
+                # Opção de exportação individual para XLSX com dados em linha
+                output_ind = io.BytesIO()
+                with pd.ExcelWriter(output_ind, engine='openpyxl') as writer:
+                    df_resumo.to_excel(writer, index=False, sheet_name='RDO')
+                excel_data_ind = output_ind.getvalue()
+
                 st.download_button(
-                    label="📥 Baixar Relatório (CSV)",
-                    data=csv_data,
-                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.csv",
-                    mime="text/csv"
-                )
-
-with aba_admin:
-    st.subheader("🔒 Painel do Administrador - RDOs Registrados")
-    senha_admin = st.text_input("Senha de Acesso", type="password", placeholder="Digite a senha de administrador")
-    
-    # Senha padrão de exemplo configurada como 'admin123'
-    if senha_admin == "admin123":
-        st.success("Acesso autorizado com sucesso!")
-        
-        if len(st.session_state.lista_rdos) > 0:
-            df_admin = pd.DataFrame(st.session_state.lista_rdos)
-            st.dataframe(df_admin, use_container_width=True)
-            
-            # Botão para baixar todos os relatórios consolidados
-            csv_todos = df_admin.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Baixar Todos os Relatórios (Consolidado CSV)",
-                data=csv_todos,
-                file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.csv",
-                mime="text/csv"
-            )
-        else:
-            st.info("Nenhum RDO cadastrado nesta sessão até o momento.")
-    elif senha_admin != "":
-        st.error("Senha incorreta. Tente novamente.")
-    else:
-        st.info("🔑 Insira a senha de administrador para visualizar os dados. (Senha padrão de teste: `admin123`)")
+                    label="📥 Baixar Relatório (Excel .xlsx)",
+                    data=excel_data_ind,
+                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%
