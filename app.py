@@ -149,4 +149,12 @@ with aba_formulario:
         with col4:
             estaca_inicial = st.number_input("Estaca Inicial", min_value=0, step=1, value=0)
         with col5:
-            fracao_inicial = st.number_input("Fração Inicial (m)", min_value=0.0, max_
+            fracao_inicial = st.number_input("Fração Inicial (m)", min_value=0.0, max_value=19.99, step=0.01, value=0.0)
+        with col6:
+            estaca_final = st.number_input("Estaca Final", min_value=0, step=1, value=0)
+        with col7:
+            fracao_final = st.number_input("Fração Final (m)", min_value=0.0, max_value=19.99, step=0.01, value=0.0)
+
+        st.markdown("---")
+        st.markdown("##### ⚙️ 3. Detalhamento do Serviço")
+        servico = st.selectbox(
