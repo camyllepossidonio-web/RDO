@@ -36,11 +36,6 @@ st.markdown("""
         color: #111111;
         margin-bottom: 20px;
     }
-    [data-testid="column"] img {
-        object-fit: contain;
-        max-height: 70px;
-        width: auto;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -48,11 +43,11 @@ st.markdown("""
 if "lista_rdos" not in st.session_state:
     st.session_state.lista_rdos = []
 
-# Cabeçalho global com o Logo ajustado na parte superior esquerda
-col_logo, col_titulo = st.columns([1.2, 5.8])
+# Cabeçalho global com proporção ajustada para o logo completo
+col_logo, col_titulo = st.columns([2, 5])
 with col_logo:
     try:
-        st.image("logo-ellenco.jpg", use_column_width=True)
+        st.image("logo-ellenco.jpg", width=220)
     except Exception:
         st.warning("⚠️ Logo 'logo-ellenco.jpg' não encontrada.")
 with col_titulo:
