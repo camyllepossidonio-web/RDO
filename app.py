@@ -61,10 +61,8 @@ with st.form("form_rdo"):
     
     with col8:
         fiscal = st.text_input("Nome do Fiscal / Supervisor", placeholder="Nome completo do Fiscal")
-        crea_fiscal = st.text_input("CREA / Órgão do Fiscal", placeholder="Ex: CREA 123456-D")
     with col9:
         engenheiro = st.text_input("Nome do Engenheiro Responsável", placeholder="Nome completo do Engenheiro")
-        crea_engenheiro = st.text_input("CREA do Engenheiro", placeholder="Ex: CREA 654321-S")
 
     # Botão de submissão
     submitted = st.form_submit_button("Gerar e Validar RDO")
@@ -111,8 +109,8 @@ if submitted:
                     f"{extensao_total_m:.2f} m",
                     servico,
                     descricao,
-                    f"{fiscal} ({crea_fiscal if crea_fiscal else 'N/I'})",
-                    f"{engenheiro} ({crea_engenheiro if crea_engenheiro else 'N/I'})"
+                    fiscal,
+                    engenheiro
                 ]
             }
             
