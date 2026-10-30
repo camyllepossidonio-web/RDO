@@ -43,6 +43,10 @@ with aba_formulario:
     st.markdown("")
 
     with st.form("form_rdo"):
+        st.markdown("##### 👤 Responsável pelo Registro")
+        responsavel_preenchimento = st.text_input("Nome do Responsável pelo Preenchimento", placeholder="Seu nome completo")
+        
+        st.markdown("---")
         st.markdown("##### 📍 1. Localização e Referência")
         col1, col2, col3 = st.columns(3)
         
@@ -100,8 +104,8 @@ with aba_formulario:
 
     if submitted:
         # Validações básicas
-        if not rodovia or not descricao or not fiscal or not engenheiro:
-            st.error("⚠️ Por favor, preencha todos os campos obrigatórios (Rodovia, Descrição e Responsáveis).")
+        if not rodovia or not descricao or not fiscal or not engenheiro or not responsavel_preenchimento:
+            st.error("⚠️ Por favor, preencha todos os campos obrigatórios (incluindo o Responsável pelo Preenchimento).")
         else:
             # Cálculo de extensão (1 estaca = 20 metros)
             posicao_inicial_m = (estaca_inicial * 20) + fracao_inicial
@@ -123,6 +127,7 @@ with aba_formulario:
                     "Extensão Total (m)": f"{extensao_total_m:.2f} m",
                     "Tipo de Serviço": servico,
                     "Descrição": descricao,
+                    "Responsável pelo Preenchimento": responsavel_preenchimento,
                     "Fiscal Responsável": fiscal,
                     "Engenheiro Responsável": engenheiro
                 }
@@ -131,4 +136,60 @@ with aba_formulario:
                 st.success("✅ RDO validado, processado e salvo no painel do administrador com sucesso!")
                 st.markdown("---")
                 
-                # Indicadores Rápidos
+                # Indicadores Rápidos com melhor visual
+                st.markdown("##### 📊 Indicadores Calculados do Trecho")
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Extensão Total Executada", f"{extensao_total_m:.2f} m")
+                m2.metric("Km Inicial", f"Km {km_inicial:.3f}")
+                m3.metric("Km Final Calculado", f"Km {km_final_calculado:.3f}")
+                
+                st.markdown("---")
+                st.subheader("📄 Resumo do Relatório Gerado")
+                
+                # Estrutura dos dados (formato original vertical)
+                resumo_dados = {
+                    "Parâmetro": list(novo_rdo.keys()),
+                    "Detalhe": list(novo_rdo.values())
+                }
+                
+                df_resumo = pd.DataFrame(resumo_dados)
+                st.dataframe(df_resumo, use_container_width=True, hide_index=True)
+
+                # Opção de exportação para CSV individual
+                csv_data = df_resumo.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Baixar Relatório (CSV)",
+                    data=csv_data,
+                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+
+with aba_admin:
+    st.title("🔒 Painel do Administrador - Histórico de RDOs")
+    st.markdown("##### *Relação consolidada de todos os formulários preenchidos na sessão*")
+    st.markdown("")
+
+    if len(st.session_state.lista_rdos) == 0:
+        st.info("ℹ️ Nenhum RDO foi cadastrado nesta sessão ainda.")
+    else:
+        # Transforma a lista de dicionários em um DataFrame tabular completo
+        df_geral = pd.DataFrame(st.session_state.lista_rdos)
+        
+        # Métrica de resumo totalizador no topo do admin
+        col_m1, col_m2 = st.columns(2)
+        col_m1.metric("Total de RDOs Registrados", len(st.session_state.lista_rdos))
+        
+        st.markdown("")
+        st.dataframe(df_geral, use_container_width=True, hide_index=True)
+        st.markdown("")
+
+        # Botão para exportar todos os RDOs consolidados em um único CSV
+        csv_geral = df_geral.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Baixar Consolidação de Todos os RDOs (CSV)",
+            data=csv_geral,
+            file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
