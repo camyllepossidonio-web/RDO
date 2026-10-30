@@ -91,7 +91,7 @@ with aba_lancamento:
             else:
                 st.success("✅ RDO validado e processado com sucesso!")
                 
-                # Salvar no histórico global da sessão (cada campo em uma coluna, formando uma linha na tabela)
+                # Salvar no histórico global da sessão
                 novo_registro = {
                     "Data": data_servico.strftime('%d/%m/%Y'),
                     "Rodovia": rodovia,
@@ -120,4 +120,37 @@ with aba_lancamento:
                 st.download_button(
                     label="📥 Baixar Relatório (Excel .xlsx)",
                     data=excel_data_ind,
-                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%
+                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
+with aba_admin:
+    st.subheader("🔒 Painel do Administrador - RDOs Registrados")
+    senha_admin = st.text_input("Senha de Acesso", type="password", placeholder="Digite a senha de administrador")
+    
+    # Senha padrão de exemplo configurada como 'admin123'
+    if senha_admin == "admin123":
+        st.success("Acesso autorizado com sucesso!")
+        
+        if len(st.session_state.lista_rdos) > 0:
+            df_admin = pd.DataFrame(st.session_state.lista_rdos)
+            st.dataframe(df_admin, use_container_width=True)
+            
+            # Botão para baixar todos os relatórios consolidados em XLSX
+            output_todos = io.BytesIO()
+            with pd.ExcelWriter(output_todos, engine='openpyxl') as writer:
+                df_admin.to_excel(writer, index=False, sheet_name='Consolidado_RDOs')
+            excel_data_todos = output_todos.getvalue()
+
+            st.download_button(
+                label="📥 Baixar Todos os Relatórios (Consolidado Excel .xlsx)",
+                data=excel_data_todos,
+                file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.info("Nenhum RDO cadastrado nesta sessão até o momento.")
+    elif senha_admin != "":
+        st.error("Senha incorreta. Tente novamente.")
+    else:
+        st.info("🔑 Insira a senha de administrador para visualizar os dados. (Senha padrão de teste: `admin123`)")
