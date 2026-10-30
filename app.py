@@ -9,14 +9,14 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicializar o histórico de RDOs no session_state para persistência na sessão (necessário para o painel de adm)
+# Inicializar o histórico de RDOs no session_state para persistência na sessão
 if 'lista_rdos' not in st.session_state:
     st.session_state.lista_rdos = []
 
 st.title("🚧 Sistema de Relatório Diário de Obra (RDO)")
 st.markdown("### Módulo de Lançamento de Serviços e Estaques")
 
-# Criação de abas sem alterar o código original, apenas envolvendo-o na primeira aba
+# Criação de abas para separar o Lançamento e o Painel do Administrador
 aba_lancamento, aba_admin = st.tabs(["📝 Lançamento de RDO", "🔒 Painel do Administrador"])
 
 with aba_lancamento:
@@ -92,7 +92,7 @@ with aba_lancamento:
             else:
                 st.success("✅ RDO validado e processado com sucesso!")
                 
-                # Salvar no histórico global da sessão para o administrador visualizar
+                # Salvar no histórico global da sessão
                 novo_registro = {
                     "Data": data_servico.strftime('%d/%m/%Y'),
                     "Rodovia": rodovia,
@@ -109,9 +109,58 @@ with aba_lancamento:
                 st.markdown("---")
                 st.subheader("📄 Resumo do Relatório Gerado")
                 
-                # Exibição dos dados consolidados em formato amigável
                 resumo_dados = {
                     "Parâmetro": [
                         "Data", "Rodovia", "Km Inicial", "Trecho Executado", 
                         "Extensão Total (m)", "Tipo de Serviço", "Descrição", 
-                        "Fiscal Responsável", "Eng
+                        "Fiscal Responsável", "Engenheiro Responsável"
+                    ],
+                    "Detalhe": [
+                        data_servico.strftime('%d/%m/%Y'),
+                        rodovia,
+                        f"Km {km_inicial:.3f}",
+                        f"Est. {estaca_inicial}+{fracao_inicial:.2f} até Est. {estaca_final}+{fracao_final:.2f}",
+                        f"{extensao_total_m:.2f} m",
+                        servico,
+                        descricao,
+                        f"{fiscal} ({crea_fiscal})",
+                        f"{engenheiro} ({crea_engenheiro})"
+                    ]
+                }
+                
+                df_resumo = pd.DataFrame(resumo_dados)
+                st.table(df_resumo)
+
+                # Opção de exportação para CSV
+                csv_data = df_resumo.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Baixar Relatório (CSV)",
+                    data=csv_data,
+                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.csv",
+                    mime="text/csv"
+                )
+
+with aba_admin:
+    st.subheader("🔒 Painel do Administrador - RDOs Registrados")
+    senha_admin = st.text_input("Senha de Acesso", type="password", placeholder="Digite a senha de administrador")
+    
+    if senha_admin == "admin123":
+        st.success("Acesso autorizado com sucesso!")
+        
+        if len(st.session_state.lista_rdos) > 0:
+            df_admin = pd.DataFrame(st.session_state.lista_rdos)
+            st.dataframe(df_admin, use_container_width=True)
+            
+            csv_todos = df_admin.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Baixar Todos os Relatórios (Consolidado CSV)",
+                data=csv_todos,
+                file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("Nenhum RDO cadastrado nesta sessão até o momento.")
+    elif senha_admin != "":
+        st.error("Senha incorreta. Tente novamente.")
+    else:
+        st.info("🔑 Insira a senha de administrador para visualizar os dados. (Senha padrão de teste: `admin123`)")
