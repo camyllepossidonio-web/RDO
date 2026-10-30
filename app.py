@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilização CSS customizada e moderna (com ajuste para exibir imagens por completo)
+# Estilização CSS customizada e moderna
 st.markdown("""
     <style>
     .block-container {
@@ -36,7 +36,6 @@ st.markdown("""
         color: #111111;
         margin-bottom: 20px;
     }
-    /* Garante que o logo apareça por completo e centralizado verticalmente */
     [data-testid="column"] img {
         object-fit: contain;
         max-height: 70px;
@@ -107,4 +106,102 @@ with aba_formulario:
 
         st.markdown("---")
         st.markdown("##### 📏 2. Estaqueamento e Extensão")
-        col4, col5
+        col4, col5, col6, col7 = st.columns(4)
+        
+        with col4:
+            estaca_inicial = st.number_input("Estaca Inicial", min_value=0, step=1, value=0)
+        with col5:
+            fracao_inicial = st.number_input("Fração Inicial (m)", min_value=0.0, max_value=19.99, step=0.01, value=0.0)
+        with col6:
+            estaca_final = st.number_input("Estaca Final", min_value=0, step=1, value=0)
+        with col7:
+            fracao_final = st.number_input("Fração Final (m)", min_value=0.0, max_value=19.99, step=0.01, value=0.0)
+
+        st.markdown("---")
+        st.markdown("##### ⚙️ 3. Detalhamento do Serviço")
+        servico = st.selectbox(
+            "Tipo de Serviço",
+            [
+                "Terraplenagem / Corte",
+                "Terraplenagem / Aterro",
+                "Camada de Pavimentação (BGS / CBUQ)",
+                "Drenagem / OAE",
+                "Sinalização Rodoviária",
+                "Serviços Preliminares"
+            ]
+        )
+        
+        descricao = st.text_area(
+            "Descrição Detalhada do Serviço",
+            placeholder="Descreva as atividades executadas, equipamentos utilizados e observações relevantes..."
+        )
+
+        st.markdown("---")
+        st.markdown("##### 👥 4. Responsáveis Técnicos")
+        col8, col9 = st.columns(2)
+        
+        with col8:
+            fiscal = st.text_input("Nome do Fiscal / Supervisor", placeholder="Nome completo do Fiscal")
+        with col9:
+            engenheiro = st.text_input("Nome do Engenheiro Responsável", placeholder="Nome completo do Engenheiro")
+
+        st.markdown("")
+        # Botão de submissão estilizado
+        submitted = st.form_submit_button("🚀 Gerar e Validar RDO", use_container_width=True)
+
+    if submitted:
+        # Validações básicas
+        if not cliente or not obra or not centro_custo or not rodovia or not descricao or not fiscal or not engenheiro or not responsavel_preenchimento:
+            st.error("⚠️ Por favor, preencha todos os campos obrigatórios.")
+        else:
+            # Cálculo de extensão (1 estaca = 20 metros)
+            posicao_inicial_m = (estaca_inicial * 20) + fracao_inicial
+            posicao_final_m = (estaca_final * 20) + fracao_final
+            extensao_total_m = posicao_final_m - posicao_inicial_m
+
+            if extensao_total_m < 0:
+                st.error("Erro: A estaca/fração final não pode ser menor que a inicial.")
+            else:
+                km_final_calculado = km_inicial + (extensao_total_m / 1000.0)
+                
+                num_rdo = len(st.session_state.lista_rdos) + 1
+                data_formatada = data_servico.strftime('%d %b %Y').capitalize()
+                
+                # Salva o RDO na lista da sessão
+                novo_rdo = {
+                    "Data": data_servico.strftime('%d/%m/%Y'),
+                    "Cliente": cliente,
+                    "Obra": obra,
+                    "Centro de Custo": centro_custo,
+                    "Condição do Tempo": tempo,
+                    "Período": periodo,
+                    "Rodovia": rodovia,
+                    "Km Inicial": f"Km {km_inicial:.3f}",
+                    "Km Final Calculado": f"Km {km_final_calculado:.3f}",
+                    "Trecho Executado": f"Est. {estaca_inicial}+{fracao_inicial:.2f} até Est. {estaca_final}+{fracao_final:.2f}",
+                    "Extensão Total (m)": f"{extensao_total_m:.2f} m",
+                    "Tipo de Serviço": servico,
+                    "Descrição": descricao,
+                    "Responsável pelo Preenchimento": responsavel_preenchimento,
+                    "Fiscal Responsável": fiscal,
+                    "Engenheiro Responsável": engenheiro
+                }
+                st.session_state.lista_rdos.append(novo_rdo)
+
+                st.success("✅ RDO validado, processado e salvo no painel do administrador com sucesso!")
+                st.markdown("---")
+                
+                # --- CABEÇALHO DO RELATÓRIO ESTILIZADO CONFORME O MODELO ---
+                st.markdown(f"""
+                <div class="rdo-header-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 1.15rem; font-weight: bold;">#{num_rdo} - {data_formatada} ({data_servico.strftime('%A').capitalize()})</span>
+                        <span style="font-size: 0.85rem; color: #666;">Criado por: {responsavel_preenchimento}</span>
+                    </div>
+                    <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
+                    <div style="font-size: 0.95rem; line-height: 1.5;">
+                        <b>Cliente:</b> {cliente}<br>
+                        <b>Obra:</b> {obra}<br>
+                        <b>Centro de Custo / Rodovia:</b> {centro_custo} | {rodovia}
+                    </div>
+                    <hr style="margin:
