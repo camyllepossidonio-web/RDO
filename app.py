@@ -172,4 +172,104 @@ with aba_formulario:
                     "Data": data_servico.strftime('%d/%m/%Y'),
                     "Cliente": cliente,
                     "Obra": obra,
-                    "Centro de C
+                    "Centro de Custo": centro_custo,
+                    "Condição do Tempo": tempo,
+                    "Período": periodo,
+                    "Rodovia": rodovia,
+                    "Km Inicial": f"Km {km_inicial:.3f}",
+                    "Km Final Calculado": f"Km {km_final_calculado:.3f}",
+                    "Trecho Executado": f"Est. {estaca_inicial}+{fracao_inicial:.2f} até Est. {estaca_final}+{fracao_final:.2f}",
+                    "Extensão Total (m)": f"{extensao_total_m:.2f} m",
+                    "Tipo de Serviço": servico,
+                    "Descrição": descricao,
+                    "Responsável pelo Preenchimento": responsavel_preenchimento,
+                    "Fiscal Responsável": fiscal,
+                    "Engenheiro Responsável": engenheiro
+                }
+                st.session_state.lista_rdos.append(novo_rdo)
+
+                st.success("✅ RDO validado, processado e salvo no painel do administrador com sucesso!")
+                st.markdown("---")
+                
+                # --- CABEÇALHO DO RELATÓRIO ESTILIZADO ---
+                st.markdown(f"""
+                <div class="rdo-header-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 1.15rem; font-weight: bold;">#{num_rdo} - {data_formatada} ({data_servico.strftime('%A').capitalize()})</span>
+                        <span style="font-size: 0.85rem; color: #666;">Criado por: {responsavel_preenchimento}</span>
+                    </div>
+                    <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
+                    <div style="font-size: 0.95rem; line-height: 1.5;">
+                        <b>Cliente:</b> {cliente}<br>
+                        <b>Obra:</b> {obra}<br>
+                        <b>Centro de Custo / Rodovia:</b> {centro_custo} | {rodovia}
+                    </div>
+                    <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
+                    <div style="font-size: 0.95rem;">
+                        <b>Tempo:</b> {periodo} ({tempo}) ☀️
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Indicadores Rápidos
+                st.markdown("##### 📊 Indicadores Calculados do Trecho")
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Extensão Total Executada", f"{extensao_total_m:.2f} m")
+                m2.metric("Km Inicial", f"Km {km_inicial:.3f}")
+                m3.metric("Km Final Calculado", f"Km {km_final_calculado:.3f}")
+                
+                st.markdown("---")
+                st.subheader("📄 Resumo do Relatório Gerado")
+                
+                resumo_dados = {
+                    "Parâmetro": list(novo_rdo.keys()),
+                    "Detalhe": list(novo_rdo.values())
+                }
+                
+                df_resumo = pd.DataFrame(resumo_dados)
+                st.dataframe(df_resumo, use_container_width=True, hide_index=True)
+
+                # Exportação para XLSX individual usando BytesIO
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df_resumo.to_excel(writer, index=False, sheet_name='RDO')
+                excel_data = output.getvalue()
+
+                st.download_button(
+                    label="📥 Baixar Relatório (XLSX)",
+                    data=excel_data,
+                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+
+with aba_admin:
+    st.title("🔒 Painel do Administrador - Histórico de RDOs")
+    st.markdown("##### *Relação consolidada de todos os formulários preenchidos na sessão*")
+    st.markdown("")
+
+    if len(st.session_state.lista_rdos) == 0:
+        st.info("ℹ️ Nenhum RDO foi cadastrado nesta sessão ainda.")
+    else:
+        df_geral = pd.DataFrame(st.session_state.lista_rdos)
+        
+        col_m1, col_m2 = st.columns(2)
+        col_m1.metric("Total de RDOs Registrados", len(st.session_state.lista_rdos))
+        
+        st.markdown("")
+        st.dataframe(df_geral, use_container_width=True, hide_index=True)
+        st.markdown("")
+
+        # Exportação consolidada para XLSX usando BytesIO
+        output_geral = io.BytesIO()
+        with pd.ExcelWriter(output_geral, engine='openpyxl') as writer:
+            df_geral.to_excel(writer, index=False, sheet_name='Consolidado_RDOs')
+        excel_geral_data = output_geral.getvalue()
+
+        st.download_button(
+            label="📥 Baixar Consolidação de Todos os RDOs (XLSX)",
+            data=excel_geral_data,
+            file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
