@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import io
 
 # Configuração da página
 st.set_page_config(
@@ -26,6 +27,14 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         background-color: var(--background-color);
         border: 1px solid rgba(128, 128, 128, 0.2);
+    }
+    .rdo-header-box {
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 20px;
+        background-color: #fafafa;
+        color: #111111;
+        margin-bottom: 20px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -141,6 +150,9 @@ with aba_formulario:
             else:
                 km_final_calculado = km_inicial + (extensao_total_m / 1000.0)
                 
+                num_rdo = len(st.session_state.lista_rdos) + 1
+                data_formatada = data_servico.strftime('%d %b %Y').capitalize()
+                
                 # Salva o RDO na lista da sessão
                 novo_rdo = {
                     "Data": data_servico.strftime('%d/%m/%Y'),
@@ -165,7 +177,27 @@ with aba_formulario:
                 st.success("✅ RDO validado, processado e salvo no painel do administrador com sucesso!")
                 st.markdown("---")
                 
-                # Indicadores Rápidos com melhor visual
+                # --- CABEÇALHO DO RELATÓRIO ESTILIZADO CONFORME O MODELO ---
+                st.markdown(f"""
+                <div class="rdo-header-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 1.15rem; font-weight: bold;">#{num_rdo} - {data_formatada} ({data_servico.strftime('%A').capitalize()})</span>
+                        <span style="font-size: 0.85rem; color: #666;">Criado por: {responsavel_preenchimento}</span>
+                    </div>
+                    <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
+                    <div style="font-size: 0.95rem; line-height: 1.5;">
+                        <b>Cliente:</b> {cliente}<br>
+                        <b>Obra:</b> {obra}<br>
+                        <b>Centro de Custo / Rodovia:</b> {centro_custo} | {rodovia}
+                    </div>
+                    <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
+                    <div style="font-size: 0.95rem;">
+                        <b>Tempo:</b> {periodo} ({tempo}) ☀️
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Indicadores Rápidos
                 st.markdown("##### 📊 Indicadores Calculados do Trecho")
                 m1, m2, m3 = st.columns(3)
                 m1.metric("Extensão Total Executada", f"{extensao_total_m:.2f} m")
@@ -175,7 +207,6 @@ with aba_formulario:
                 st.markdown("---")
                 st.subheader("📄 Resumo do Relatório Gerado")
                 
-                # Estrutura dos dados (formato original vertical)
                 resumo_dados = {
                     "Parâmetro": list(novo_rdo.keys()),
                     "Detalhe": list(novo_rdo.values())
@@ -184,13 +215,17 @@ with aba_formulario:
                 df_resumo = pd.DataFrame(resumo_dados)
                 st.dataframe(df_resumo, use_container_width=True, hide_index=True)
 
-                # Opção de exportação para CSV individual
-                csv_data = df_resumo.to_csv(index=False).encode('utf-8')
+                # Exportação para XLSX individual usando BytesIO
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df_resumo.to_excel(writer, index=False, sheet_name='RDO')
+                excel_data = output.getvalue()
+
                 st.download_button(
-                    label="📥 Baixar Relatório (CSV)",
-                    data=csv_data,
-                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
+                    label="📥 Baixar Relatório (XLSX)",
+                    data=excel_data,
+                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
 
@@ -202,10 +237,8 @@ with aba_admin:
     if len(st.session_state.lista_rdos) == 0:
         st.info("ℹ️ Nenhum RDO foi cadastrado nesta sessão ainda.")
     else:
-        # Transforma a lista de dicionários em um DataFrame tabular completo
         df_geral = pd.DataFrame(st.session_state.lista_rdos)
         
-        # Métrica de resumo totalizador no topo do admin
         col_m1, col_m2 = st.columns(2)
         col_m1.metric("Total de RDOs Registrados", len(st.session_state.lista_rdos))
         
@@ -213,12 +246,16 @@ with aba_admin:
         st.dataframe(df_geral, use_container_width=True, hide_index=True)
         st.markdown("")
 
-        # Botão para exportar todos os RDOs consolidados em um único CSV
-        csv_geral = df_geral.to_csv(index=False).encode('utf-8')
+        # Exportação consolidada para XLSX usando BytesIO
+        output_geral = io.BytesIO()
+        with pd.ExcelWriter(output_geral, engine='openpyxl') as writer:
+            df_geral.to_excel(writer, index=False, sheet_name='Consolidado_RDOs')
+        excel_geral_data = output_geral.getvalue()
+
         st.download_button(
-            label="📥 Baixar Consolidação de Todos os RDOs (CSV)",
-            data=csv_geral,
-            file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.csv",
-            mime="text/csv",
+            label="📥 Baixar Consolidação de Todos os RDOs (XLSX)",
+            data=excel_geral_data,
+            file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
