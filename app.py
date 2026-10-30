@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from fpdf import FPDF
+import io
 
 # Configuração da página
 st.set_page_config(
@@ -9,140 +11,42 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicializar o histórico de RDOs no session_state para persistência na sessão
-if 'lista_rdos' not in st.session_state:
-    st.session_state.lista_rdos = []
+# Inicialização do banco de dados na sessão (Session State)
+if "rdos_db" not in st.session_state:
+    st.session_state["rdos_db"] = []
 
-st.title("🚧 Sistema de Relatório Diário de Obra (RDO)")
-st.markdown("### Módulo de Lançamento de Serviços e Estaques")
 
-# Criação de abas para separar o Lançamento e o Painel do Administrador
-aba_lancamento, aba_admin = st.tabs(["📝 Lançamento de RDO", "🔒 Painel do Administrador"])
-
-with aba_lancamento:
-    with st.form("form_rdo"):
-        st.subheader("1. Localização e Referência")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            rodovia = st.text_input("Rodovia (ex: SP-280)", placeholder="Ex: SP-300")
-        with col2:
-            km_inicial = st.number_input("Km Inicial", min_value=0.0, format="%.3f", value=0.0)
-        with col3:
-            data_servico = st.date_input("Data do Serviço", value=datetime.today())
-
-        st.markdown("---")
-        st.subheader("2. Estaqueamento e Extensão")
-        col4, col5, col6, col7 = st.columns(4)
-        
-        with col4:
-            estaca_inicial = st.number_input("Estaca Inicial", min_value=0, step=1, value=0)
-        with col5:
-            fracao_inicial = st.number_input("Fração Inicial (m)", min_value=0.0, max_value=19.99, step=0.01, value=0.0)
-        with col6:
-            estaca_final = st.number_input("Estaca Final", min_value=0, step=1, value=0)
-        with col7:
-            fracao_final = st.number_input("Fração Final (m)", min_value=0.0, max_value=19.99, step=0.01, value=0.0)
-
-        st.markdown("---")
-        st.subheader("3. Detalhamento do Serviço")
-        servico = st.selectbox(
-            "Tipo de Serviço",
-            [
-                "Terraplenagem / Corte",
-                "Terraplenagem / Aterro",
-                "Camada de Pavimentação (BGS / CBUQ)",
-                "Drenagem / OAE",
-                "Sinalização Rodoviária",
-                "Serviços Preliminares"
-            ]
-        )
-        
-        descricao = st.text_area(
-            "Descrição Detalhada do Serviço",
-            placeholder="Descreva as atividades executadas, equipamentos utilizados, condições climáticas e observações relevantes..."
-        )
-
-        st.markdown("---")
-        st.subheader("4. Responsáveis Técnicos e Assinaturas")
-        col8, col9 = st.columns(2)
-        
-        with col8:
-            fiscal = st.text_input("Nome do Fiscal / Supervisor", placeholder="Nome completo do Fiscal")
-            crea_fiscal = st.text_input("CREA / Órgão do Fiscal", placeholder="Ex: CREA 123456-D")
-        with col9:
-            engenheiro = st.text_input("Nome do Engenheiro Responsável", placeholder="Nome completo do Engenheiro")
-            crea_engenheiro = st.text_input("CREA do Engenheiro", placeholder="Ex: CREA 654321-S")
-
-        # Botão de submissão
-        submitted = st.form_submit_button("Gerar e Validar RDO")
-
-    if submitted:
-        # Validações básicas
-        if not rodovia or not descricao or not fiscal or not engenheiro:
-            st.error("Por favor, preencha todos os campos obrigatórios (Rodovia, Descrição e Responsáveis).")
-        else:
-            # Cálculo de extensão (Considerando 1 estaca = 20 metros)
-            posicao_inicial_m = (estaca_inicial * 20) + fracao_inicial
-            posicao_final_m = (estaca_final * 20) + fracao_final
-            extensao_total_m = posicao_final_m - posicao_inicial_m
-
-            if extensao_total_m < 0:
-                st.error("Erro: A estaca/fração final não pode ser menor que a inicial.")
-            else:
-                st.success("RDO validado e processado com sucesso!")
-                
-                # Salvar no histórico global da sessão (cada dado isolado em sua respectiva chave/coluna)
-                novo_registro = {
-                    "Data": data_servico.strftime('%d/%m/%Y'),
-                    "Rodovia": rodovia,
-                    "Km Inicial": f"Km {km_inicial:.3f}",
-                    "Trecho Executado": f"Est. {estaca_inicial}+{fracao_inicial:.2f} até Est. {estaca_final}+{fracao_final:.2f}",
-                    "Extensão Total (m)": f"{extensao_total_m:.2f} m",
-                    "Tipo de Serviço": servico,
-                    "Descrição": descricao,
-                    "Fiscal Responsável": f"{fiscal} ({crea_fiscal})",
-                    "Engenheiro Responsável": f"{engenheiro} ({crea_engenheiro})"
-                }
-                st.session_state.lista_rdos.append(novo_registro)
-                
-                st.markdown("---")
-                st.subheader("Resumo do Relatório Gerado")
-                
-                # Exibição organizada em colunas independentes
-                df_resumo = pd.DataFrame([novo_registro])
-                st.dataframe(df_resumo, use_container_width=True)
-
-                # Opção de exportação para CSV com cada dado em sua coluna própria
-                csv_data = df_resumo.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="Baixar Relatorio em CSV",
-                    data=csv_data,
-                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.csv",
-                    mime="text/csv"
-                )
-
-with aba_admin:
-    st.subheader("Painel do Administrador - RDOs Registrados")
-    senha_admin = st.text_input("Senha de Acesso", type="password", placeholder="Digite a senha de administrador")
+# Função para gerar o PDF formatado do RDO
+def gerar_pdf_rdo(dados):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
     
-    if senha_admin == "admin123":
-        st.success("Acesso autorizado com sucesso!")
+    # Cabeçalho
+    pdf.cell(0, 10, "RELATÓRIO DIÁRIO DE OBRA (RDO)", ln=True, align="C")
+    pdf.set_font("Arial", "I", 10)
+    pdf.cell(0, 10, f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=True, align="C")
+    pdf.ln(5)
+    
+    # Tabela/Campos do RDO
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 8, "Detalhes do Registro:", ln=True)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", "", 10)
+    for chave, valor in dados.items():
+        # Trata o texto para evitar problemas de codificação no FPDF
+        texto_chave = str(chave).encode('latin-1', 'replace').decode('latin-1')
+        texto_valor = str(valor).encode('latin-1', 'replace').decode('latin-1')
         
-        if len(st.session_state.lista_rdos) > 0:
-            df_admin = pd.DataFrame(st.session_state.lista_rdos)
-            st.dataframe(df_admin, use_container_width=True)
-            
-            csv_todos = df_admin.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="Baixar Todos os Relatorios Consolidados",
-                data=csv_todos,
-                file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.csv",
-                mime="text/csv"
-            )
+        if chave == "Descrição":
+            pdf.ln(3)
+            pdf.set_font("Arial", "B", 10)
+            pdf.cell(0, 6, f"{texto_chave}:", ln=True)
+            pdf.set_font("Arial", "", 10)
+            pdf.multi_cell(0, 6, texto_valor)
+            pdf.ln(3)
         else:
-            st.info("Nenhum RDO cadastrado nesta sessão até o momento.")
-    elif senha_admin != "":
-        st.error("Senha incorreta. Tente novamente.")
-    else:
-        st.info("Insira a senha de administrador para visualizar os dados. (Senha padrão de teste: admin123)")
+            pdf.cell(60, 6, f"{texto_chave}:", b=0)
+            pdf.cell(0, 6, texto_valor,
