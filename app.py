@@ -188,4 +188,127 @@ with aba_formulario:
             st.error("⚠️ Por favor, preencha todos os campos obrigatórios.")
         else:
             posicao_inicial_m = (estaca_inicial * 20) + fracao_inicial
-            posicao_final_m = (estaca_
+            posicao_final_m = (estaca_final * 20) + fracao_final
+            extensao_total_m = posicao_final_m - posicao_inicial_m
+
+            if extensao_total_m < 0:
+                st.error("Erro: A estaca/fração final não pode ser menor que a inicial.")
+            else:
+                km_final_calculado = km_inicial + (extensao_total_m / 1000.0)
+                
+                num_rdo = len(st.session_state.lista_rdos) + 1
+                data_formatada = data_servico.strftime('%d %b %Y').capitalize()
+                
+                novo_rdo = {
+                    "Data": data_servico.strftime('%d/%m/%Y'),
+                    "Cliente": cliente,
+                    "Obra": obra,
+                    "Centro de Custo": centro_custo,
+                    "Condição do Tempo": tempo,
+                    "Período": periodo,
+                    "Rodovia": rodovia,
+                    "Km Inicial": f"Km {km_inicial:.3f}",
+                    "Km Final Calculado": f"Km {km_final_calculado:.3f}",
+                    "Trecho Executado": f"Est. {estaca_inicial}+{fracao_inicial:.2f} até Est. {estaca_final}+{fracao_final:.2f}",
+                    "Extensão Total (m)": f"{extensao_total_m:.2f} m",
+                    "Tipo de Serviço": servico,
+                    "Descrição": descricao,
+                    "Responsável pelo Preenchimento": responsavel_preenchimento,
+                    "Fiscal Responsável": fiscal,
+                    "Engenheiro Responsável": engenheiro
+                }
+                st.session_state.lista_rdos.append(novo_rdo)
+
+                st.success("✅ RDO validado, processado e salvo no painel do administrador com sucesso!")
+                
+                # --- VISUALIZAÇÃO EM FORMATO DE FOLHA A4 ---
+                st.markdown(f"""
+                <div class="a4-page">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #102a43; padding-bottom: 10px; margin-bottom: 15px;">
+                        <h2 style="margin: 0; color: #102a43; font-size: 1.4rem;">RELATÓRIO DIÁRIO DE OBRA (RDO)</h2>
+                        <span style="font-size: 0.9rem; font-weight: bold; color: #555;">#{num_rdo}</span>
+                    </div>
+                    <div style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 15px;">
+                        <b>Data:</b> {data_formatada} ({data_servico.strftime('%A').capitalize()})<br>
+                        <b>Cliente:</b> {cliente} &nbsp;|&nbsp; <b>Obra:</b> {obra}<br>
+                        <b>Centro de Custo:</b> {centro_custo} &nbsp;|&nbsp; <b>Rodovia:</b> {rodovia}<br>
+                        <b>Período:</b> {periodo} &nbsp;|&nbsp; <b>Condição do Tempo:</b> {tempo} ☀️<br>
+                        <b>Responsável:</b> {responsavel_preenchimento}
+                    </div>
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+                    <div style="font-size: 0.95rem; line-height: 1.6;">
+                        <b>Trecho Executado:</b> Est. {estaca_inicial}+{fracao_inicial:.2f} até Est. {estaca_final}+{fracao_final:.2f}<br>
+                        <b>Extensão Total:</b> {extensao_total_m:.2f} metros ({km_inicial:.3f} ao {km_final_calculado:.3f})<br>
+                        <b>Serviço:</b> {servico}<br>
+                        <b>Descrição:</b> {descricao}
+                    </div>
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+                    <div style="font-size: 0.9rem; color: #486581; display: flex; justify-content: space-between;">
+                        <span><b>Fiscal:</b> {fiscal}</span>
+                        <span><b>Engenheiro:</b> {engenheiro}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Indicadores Rápidos
+                st.markdown("##### 📊 Indicadores Calculados do Trecho")
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Extensão Total Executada", f"{extensao_total_m:.2f} m")
+                m2.metric("Km Inicial", f"Km {km_inicial:.3f}")
+                m3.metric("Km Final Calculado", f"Km {km_final_calculado:.3f}")
+                
+                st.markdown("---")
+                st.subheader("📄 Tabela Completa de Parâmetros")
+                
+                resumo_dados = {
+                    "Parâmetro": list(novo_rdo.keys()),
+                    "Detalhe": list(novo_rdo.values())
+                }
+                
+                df_resumo = pd.DataFrame(resumo_dados)
+                st.dataframe(df_resumo, use_container_width=True, hide_index=True)
+
+                # Exportação para XLSX individual usando BytesIO
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df_resumo.to_excel(writer, index=False, sheet_name='RDO')
+                excel_data = output.getvalue()
+
+                st.download_button(
+                    label="📥 Baixar Relatório Individual (XLSX)",
+                    data=excel_data,
+                    file_name=f"RDO_{rodovia.replace(' ', '_')}_{data_servico.strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+
+with aba_admin:
+    st.title("🔒 Painel do Administrador - Histórico de RDOs")
+    st.markdown("##### *Relação consolidada de todos os formulários preenchidos na sessão*")
+    st.markdown("")
+
+    if len(st.session_state.lista_rdos) == 0:
+        st.info("ℹ️ Nenhum RDO foi cadastrado nesta sessão ainda.")
+    else:
+        df_geral = pd.DataFrame(st.session_state.lista_rdos)
+        
+        col_m1, col_m2 = st.columns(2)
+        col_m1.metric("Total de RDOs Registrados", len(st.session_state.lista_rdos))
+        
+        st.markdown("")
+        st.dataframe(df_geral, use_container_width=True, hide_index=True)
+        st.markdown("")
+
+        # Exportação consolidada para XLSX usando BytesIO
+        output_geral = io.BytesIO()
+        with pd.ExcelWriter(output_geral, engine='openpyxl') as writer:
+            df_geral.to_excel(writer, index=False, sheet_name='Consolidado_RDOs')
+        excel_geral_data = output_geral.getvalue()
+
+        st.download_button(
+            label="📥 Baixar Consolidação de Todos os RDOs (XLSX)",
+            data=excel_geral_data,
+            file_name=f"Consolidado_RDOs_{datetime.today().strftime('%Y%m%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
